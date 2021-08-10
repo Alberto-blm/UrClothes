@@ -17,7 +17,7 @@ def users_funct():
         return jsonify({'_id': db.create_user(request_body)})
     elif request.method == 'PUT':
     # Actualizar nombre y descripcion de la carrera
-        return jsonify({'modificados': db.update_user(request_body)})
+        return jsonify({'_id': db.update_user(request_body)})
     elif request.method == 'DELETE' and user_id is not None:
         # Borrar una carrera usando el _id
         return jsonify({'borrados': db.delete_user_id(user_id)})
@@ -31,3 +31,12 @@ def users_funct():
         limit = (limit, 10)[limit is None]
         result = db.read_users(skip, limit)
         return jsonify({'user': json.loads(result)})
+
+
+
+@bp.route('/signIn', methods=['POST'])
+def signIn_user():
+    request_body = request.get_json()
+    if request.method == 'POST':
+        # Crear carrera
+        return db.signIn(request_body)

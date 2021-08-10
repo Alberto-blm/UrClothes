@@ -1,11 +1,15 @@
 import os
 
+DB_USER = "admin"
+DB_PASSWORD = "altair98"
 
 class Config(object):
-    DEBUG = True
+    DEBUG = False
     SECRET_KEY = 'dev'
+
     #PLATZI_DB_URI = os.environ['PLATZI_DB_URI']
 
 
 class DevelopmentConfig(Config):
-    DEBUG = True
+    DEBUG = False
+
