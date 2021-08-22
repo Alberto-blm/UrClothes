@@ -2,6 +2,7 @@ import os
 
 DB_USER = "admin"
 DB_PASSWORD = "altair98"
+SECRET_KEY = "Ropita"
 
 class Config(object):
     DEBUG = False
