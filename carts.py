@@ -116,3 +116,21 @@ def pay():
 
     result = db.pay_cart(token_id)
     return jsonify({'cart': result})
+
+@bp.route('/cart', methods=['GET'])
+@token_required
+def price():
+    token = request.headers['x-access-token']
+    token_id = jwt.decode(token, config.SECRET_KEY, algorithms=["HS256"])
+
+    result = db.get_cart_price(token_id)
+    return jsonify(json.loads(result))
+
+
+@bp.route('/getUnits', methods=['POST'])
+@token_required
+def get_units():
+    token = request.headers['x-access-token']
+    token_id = jwt.decode(token, config.SECRET_KEY, algorithms=["HS256"])
+    result = db.get_units(token_id)
+    return jsonify({'cart': json.loads(result)})

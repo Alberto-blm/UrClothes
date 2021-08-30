@@ -41,23 +41,18 @@ def users_funct():
 
     request_body = request.get_json()
     if request.method == 'POST':
-        # Crear carrera
         return jsonify({'_id': db.add_cloth(request_body)})
     elif request.method == 'PUT':
-    # Actualizar nombre y descripcion de la carrera
         return jsonify({'modificados': db.update_user(request_body)})
     elif request.method == 'DELETE' and cloth_id is not None:
-        # Borrar una carrera usando el _id
         return jsonify({'borrados': db.delete_user_id(cloth_id)})
     elif cloth_id is not None:
-        # Obtener ropa por _id
         result = db.read_cloth_id(cloth_id)
         return jsonify({'cloth': json.loads(result)})
     elif cloth_type is not None:
         result = db.read_cloth_type(cloth_type)
         return jsonify({'cloth': json.loads(result)})
     else:
-        # Novedades
         skip = (skip, 0)[skip is None]
         limit = (limit, 10)[limit is None]
         result = db.read_clothes(skip, limit)
@@ -67,8 +62,7 @@ def users_funct():
 def news():
     skip = request.args.get('skip')
     limit = request.args.get('limit')
-    limit = (limit, 5)[limit is None]
-    # Crear carrera
+    limit = (limit, 10)[limit is None]
     result = db.news(limit)
     return jsonify({'cloth': json.loads(result)})
 
@@ -76,7 +70,6 @@ def news():
 @bp.route('/search', methods=['POST'])
 def search():
     request_body = request.get_json()
-    # Crear carrera
     result = db.search(request_body)
     return jsonify({'cloth': json.loads(result)})
 
@@ -91,6 +84,19 @@ def get_by_name():
 
 @bp.route('/getCategories', methods=['GET'])
 def categories():
-    # Crear carrera
     result = db.get_categories()
     return jsonify({'categories': json.loads(result)})
+
+
+@bp.route('/updateCloth', methods=['POST'])
+def update_cloth():
+    request_body = request.get_json()
+    result = db.update_cloth(request_body)
+    return jsonify({'_id': result})
+
+
+@bp.route('/deleteCloth', methods=['POST'])
+def delete_cloth():
+    request_body = request.get_json()
+    result = db.delete_cloth(request_body)
+    return jsonify({'_id': result})
