@@ -10,7 +10,10 @@ import json
 from . import config as c
 import jwt
 import datetime
-
+import numpy as np
+import os
+from sklearn import ensemble, svm, tree, neighbors
+import pandas as pd
 
 #Config BBDD
 
@@ -123,7 +126,33 @@ def news(limit):
 
 
 def add_cloth(data):
-    return str(db.clothes.insert_one(data))
+    cloth = loads(dumps(db.clothes.find({'name': data['name'], 'size': data['size']},)))
+    if(cloth ==[]):
+        return str(db.clothes.insert_one(data))
+    else:
+        return 
+
+
+def update_cloth(data):
+    cloth = loads(dumps(db.clothes.find({'name': data['name'], 'size': data['size']},)))
+    print(data)
+    if(cloth == []):
+        return
+    if(data['brand'] != ""):
+        db.clothes.update_one({'name': data['name'], 'size': data['size']},{'$set':{'brand': data['brand']}})
+    if(data['price'] != 0):
+        db.clothes.update_one({'name': data['name'], 'size': data['size']},{'$set':{'price': data['price']}})
+    if(data['stock'] != 0):
+        db.clothes.update_one({'name': data['name'], 'size': data['size']},{'$set':{'stock': data['stock']}})
+    return "Success"
+
+
+def delete_cloth(data):
+    cloth = loads(dumps(db.clothes.find({'name': data['name'], 'size': data['size']},)))
+    if(cloth ==[]):
+        return 
+    else:
+        return str(db.clothes.delete_one({'name': data['name'], 'size': data['size']}))
 
 
 def get_categories():
@@ -154,17 +183,54 @@ def read_cart_id(user_id):
 
 def add_to_cart(user_id, item):
     cart = loads(dumps(db.carts.find_one({'userId': user_id['UserId']})))
-    cart['price'] = cart['price'] + item['price']
-    db.carts.update_one({'userId': user_id['UserId']},{'$set': {'price': cart['price']}})
-    return str(db.carts.update_one({'userId': user_id['UserId']},{'$push':{'items': item['clothId']}}))
-
+    cloth = loads(dumps(db.clothes.find_one({'_id': ObjectId(item['clothId'])})))
+    print('llego al add')
+    if( cart['items']!= []):
+        print("entro al if grande")
+        for i in cart['items']:
+            print(i)
+            if(i == item['clothId']):
+                print(cart['items'].index(i))
+                index = cart['items'].index(i)
+                #Restauramos stock
+                cloth['stock'] = cloth['stock'] + cart['units'][index]
+                db.clothes.update_one({'_id': cloth['_id']},{'$set': {'stock': cloth['stock']}})
+                #restamos el nuevo stock
+                cloth['stock'] = cloth['stock'] - item['units']
+                db.clothes.update_one({'_id': cloth['_id']},{'$set': {'stock': cloth['stock']}})
+                #Restauramos precio
+                cart['price'] = cart['price'] - (item['price']*cart['units'][index])
+                db.carts.update_one({'userId': user_id['UserId']},{'$set': {'price': cart['price']}})
+                #restamos el nuevo precio
+                cart['price'] = cart['price'] + (item['price']*item['units'])
+                db.carts.update_one({'userId': user_id['UserId']},{'$set': {'price': cart['price']}})
+                #actualizamos unidades
+                cart['units'][index] = item['units']
+                return str(db.carts.update_one({'userId': user_id['UserId']},{'$set':{'units': cart['units']}}))
+            
+        print("entro al else")
+        cloth['stock'] = cloth['stock'] - item['units']
+        db.clothes.update_one({'_id': cloth['_id']},{'$set': {'stock': cloth['stock']}})
+        cart['price'] = cart['price'] + (item['price']*item['units'])
+        db.carts.update_one({'userId': user_id['UserId']},{'$set': {'price': cart['price']}})
+        return str(db.carts.update_one({'userId': user_id['UserId']},{'$push':{'items': item['clothId'], 'units': item['units']}}))
+    else:
+        print("entro al else grande")
+        cloth['stock'] = cloth['stock'] - item['units']
+        db.clothes.update_one({'_id': cloth['_id']},{'$set': {'stock': cloth['stock']}})
+        cart['price'] = cart['price'] + (item['price']*item['units'])
+        db.carts.update_one({'userId': user_id['UserId']},{'$set': {'price': cart['price']}})
+        return str(db.carts.update_one({'userId': user_id['UserId']},{'$push':{'items': item['clothId'], 'units': item['units']}}))
+        
 
 def delete_from_cart(user_id, item):
     cart = loads(dumps(db.carts.find_one({'userId': user_id['UserId']})))
-    cart['price'] = cart['price'] - item['price']
+    cloth = loads(dumps(db.clothes.find_one({'_id': ObjectId(item['clothId'])})))
+    cloth['stock'] = cloth['stock'] + item['units']
+    db.clothes.update_one({'_id': cloth['_id']},{'$set': {'stock': cloth['stock']}})
+    cart['price'] = (cart['price']) - (item['price'] * cart['units'][item['index']])
     db.carts.update_one({'userId': user_id['UserId']},{'$set': {'price': cart['price']}})
-    print(item['clothId']['$oid'])
-    return str(db.carts.update_one({'userId': user_id['UserId']},{'$pull':{'items': item['clothId']['$oid']}}))
+    return str(db.carts.update_one({'userId': user_id['UserId']},{'$pull':{'items': item['clothId'], 'units': cart['units'][item['index']]} }))
 
 
 def get_cart(user_id):
@@ -204,5 +270,15 @@ def pay_cart(user_id):
     cart['items'] = []
 
     return str(db.carts.update_one({'userId': cart['userId']},{'$set':{'price': cart['price'], 'items': cart['items']}}))
+
+
+def get_cart_price(user_id):
+    cart = loads(dumps(db.carts.find_one({'userId': user_id['UserId']})))
+    
+    price = cart['price']
+    return dumps(price)
 #------------------Others-----------
 
+def get_units(user_id):
+    
+    return dumps(db.carts.find_one({'userId': user_id['UserId']}))
